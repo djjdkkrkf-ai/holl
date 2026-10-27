@@ -1711,7 +1711,7 @@
           "ขนมหวานไม่หวานเท่ารอยยิ้มเธอ 🍬",
           "รักแฟน 🎃",
         ],
-        music: "", // เช่น 'music.mp3' ถ้าอยากมีเพลงประกอบ
+        music: "alex-morgan-halloween-horror-dark-ritual-music-587400.mp3",
       };
       /* ==================================================== */
 
@@ -1844,20 +1844,37 @@
 
       /* ---------- music ---------- */
       let audio = null;
+      let userMuted = false;
+      function startMusic() {
+        if (audio && audio.paused && !userMuted) audio.play().catch(() => {});
+      }
       if (CONFIG.music) {
         audio = new Audio(CONFIG.music);
         audio.loop = true;
+        audio.preload = "auto";
         const mb = $("#musicBtn");
         mb.style.display = "block";
+        mb.textContent = "🔇";
+        audio.addEventListener("play", () => (mb.textContent = "🔊"));
+        audio.addEventListener("pause", () => (mb.textContent = "🔇"));
         mb.onclick = () => {
-          if (audio.paused) {
-            audio.play().catch(() => {});
-            mb.textContent = "🔊";
-          } else {
-            audio.pause();
-            mb.textContent = "🔇";
-          }
+          userMuted = !audio.paused;
+          if (userMuted) audio.pause();
+          else audio.play().catch(() => {});
         };
+        // เบราว์เซอร์มักบล็อกเสียงจนกว่าจะแตะหน้าจอ: ลองเล่นทันที ถ้าไม่ได้ก็เล่นตอนแตะครั้งแรก
+        startMusic();
+        const events = ["pointerup", "touchend", "click", "keydown"];
+        const unlock = (e) => {
+          if (e.target.closest && e.target.closest("#musicBtn")) return;
+          startMusic();
+        };
+        events.forEach((t) => window.addEventListener(t, unlock, true));
+        audio.addEventListener(
+          "playing",
+          () => events.forEach((t) => window.removeEventListener(t, unlock, true)),
+          { once: true },
+        );
       }
 
       /* ---------- 1. gift ---------- */
@@ -1865,7 +1882,7 @@
       function openGift() {
         if (giftOpened) return;
         giftOpened = true;
-        if (audio) audio.play().catch(() => {});
+        startMusic();
         const g = $("#gift");
         g.classList.add("shaking");
         setTimeout(() => g.classList.add("opened"), 950);
